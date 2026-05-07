@@ -1,76 +1,145 @@
 # landing-page-speed
 
-Claude Code skill — migrate slow landing pages (GoHighLevel, ClickFunnels, Kajabi, Hotmart, Webflow) to **Cloudflare Pages + Astro** with maximum performance. Targets Lighthouse 95+.
+Universal Claude Code skill — optimize the loading speed of **any landing page from any platform**.
+
+Works with: GoHighLevel (GHL), Elementor + WordPress, ClickFunnels, Hotmart Pages, Kajabi, Webflow, Wix, Kartra, Cartpanda, raw HTML, scraped URLs, anything else.
+
+Targets: **Lighthouse 95+**, real LCP <1s, Core Web Vitals all "Good".
 
 ## What it does
 
-- Wraps GHL Custom Code embed HTMLs into standalone `<!doctype>` pages
-- Defers video player (vturb / wistia / vimeo / youtube) to first user interaction
-- Replaces player with a poster `<img>` so Lighthouse Lantern detects LCP candidate
-- Drops blocking Google Fonts (uses size-adjusted Arial fallback)
-- Pre-styles body in `<head>` to prevent script-driven CLS
-- Adds preconnects + preload + cache headers
-- Defers Meta Pixel / GTM 1.5s after `load`
-- Strips GHL container-escape JS in standalone context
-- Disables non-composited animations
-- Audits via Lighthouse local + PSI API in feedback loop
+When invoked, walks the user through an interactive workflow:
 
-## Result
-
-Real-world reduction: ~265KB → 21KB transfer. TTFB 400ms → 70ms. Lighthouse 25 → 97-99.
+1. **Asks how the page exists** (URL / HTML file / platform name)
+2. **Auto-detects stack** — player, pixel, checkout, platform, fonts
+3. **Confirms tradeoffs** — what visual/UX changes user accepts
+4. **Picks deploy target** — Cloudflare Pages, Netlify, Vercel, GitHub Pages, self-hosted
+5. **Builds optimized version** — applies all relevant performance patterns
+6. **Deploys**
+7. **Sets up custom domain** (optional)
+8. **Audits in feedback loop** — Lighthouse local + PSI API, iterates until score ≥95
 
 ## Install
 
 ```bash
 git clone https://github.com/gestordeaudiencia/landing-page-speed.git ~/.claude/skills/landing-page-speed
-```
-
-Then in any Claude Code session:
-
-> "otimiza minha LP do GHL e sobe no Cloudflare"
-
-Skill auto-triggers via description match.
-
-## Dependencies
-
-```bash
 npm install -g lighthouse wrangler
 ```
 
-## CF setup (one-time)
+## Invoke
 
-```bash
-export CLOUDFLARE_API_TOKEN="cfat_..."
-export CLOUDFLARE_ACCOUNT_ID="..."
-```
+In Claude Code, any of these triggers the skill:
+- `/optimize` (if you have it as a slash command)
+- "otimiza minha landing page"
+- "deixa essa página rápida"
+- "PageSpeed no talo"
+- "score Lighthouse"
+- Just paste a URL and ask "make this fast"
 
-Token perms: Cloudflare Pages Edit + Workers Scripts Edit + Account Settings Read. Get at dash.cloudflare.com → My Profile → API Tokens.
+The skill auto-triggers on description match.
+
+## Coverage
+
+### Platforms
+- GoHighLevel (GHL) Custom Code embeds
+- WordPress + Elementor (export, scrape, or rebuild)
+- ClickFunnels
+- Webflow (native export or scrape)
+- Wix, Kajabi, Hotmart Pages, Kartra, Cartpanda
+- Raw HTML / hand-coded
+- Live URL scrape (any platform)
+
+### Video players
+- vturb / converteai (defer + poster swap)
+- Wistia (defer + placeholder)
+- Vimeo (click-to-play + thumbnail)
+- YouTube (click-to-play + hqdefault thumb)
+- JWPlayer (defer init)
+- Panda Video (click-to-play)
+- Native HTML5 video
+
+### Tracking pixels
+- Meta Pixel (Facebook)
+- Google Tag Manager (GTM)
+- Google Analytics 4 (GA4 / gtag)
+- TikTok Pixel
+- Pinterest Tag
+- LinkedIn Insight
+- Hotjar
+- Microsoft Clarity
+
+### Checkouts
+- Hotmart, Eduzz, Kiwify, LastLink
+- Stripe, PayPal, MercadoPago
+- Cartpanda, ClickBank, Doppus, PerfectPay
+- Monetizze, Braip
+- Custom links
+
+### Hosts
+- Cloudflare Pages (recommended, default)
+- Netlify
+- Vercel
+- GitHub Pages
+- Self-hosted (nginx, S3, R2, VPS)
 
 ## Files
 
 ```
-SKILL.md                                  — skill manifest, workflow, when-to-use
+SKILL.md                       — interactive workflow + manifest
+README.md                      — this file
 references/
-  optimization-playbook.md                — every optimization explained, priority order
-  snippets.md                             — copy-paste code patterns (vturb defer, pixel, etc)
-  deploy-cf.md                            — Astro + Cloudflare Pages + custom domain via API
+  universal-principles.md      — core perf rules (always apply)
+  optimization-playbook.md     — every optimization in priority order
+  players.md                   — defer pattern per player type
+  pixels.md                    — defer pattern per tracking script
+  checkouts.md                 — checkout integration patterns
+  snippets.md                  — copy-paste code patterns
+  platforms/
+    ghl.md
+    elementor-wp.md
+    clickfunnels.md
+    webflow.md
+    raw-html.md
+    scrape-url.md
+    kajabi-hotmart-wix.md
+  hosts/
+    cloudflare-pages.md
+    netlify.md
+    vercel.md
+    github-pages.md
+    self-hosted.md
 scripts/
-  audit.sh <url> [url...]                 — single Lighthouse run mobile + devtools throttling
-  audit-stable.sh <url> [url...]          — 3 runs each, reports median (variance protection)
-  psi-check.sh <url> [strategy]           — PSI API call (set PSI_API_KEY env)
-  build-from-html.py <in> <out> [cfg]     — wrap GHL embed → standalone with optimizations
+  detect-stack.py              — auto-detect tech stack
+  scrape-url.sh                — fetch HTML + assets from URL
+  build-from-html.py           — wrap embed → optimized standalone
+  audit.sh                     — single Lighthouse run
+  audit-stable.sh              — 3-run median
+  psi-check.sh                 — PSI API
 ```
 
-## Workflow
+## Real-world results
 
-1. Init Astro project at chosen path
-2. Drop GHL HTML at `dist-ghl/variant-X.html`
-3. Build via `python3 scripts/build-from-html.py dist-ghl/variant-a.html public/comece2/index.html config.json`
-4. Build Astro: `npm run build`
-5. Deploy: `wrangler pages deploy dist`
-6. Audit: `./scripts/audit-stable.sh https://your-url.pages.dev/comece2/`
-7. Apply optimizations from playbook in priority order
-8. Re-audit + iterate until median ≥95
+Tested on 3 GHL VSL pages (`cloudcoding.com.br/comece2`, etc):
+
+**Before** (GHL native):
+- HTML transfer: 265 KB
+- TTFB: 400-500ms
+- LCP: 2-4s
+- Lighthouse mobile: ~25-50
+
+**After** (this skill, Cloudflare Pages):
+- HTML transfer: 21 KB (-92%)
+- TTFB: 70-120ms (-75%)
+- LCP: <1s (-75%)
+- Lighthouse mobile: 96-99
+
+## Honest expectations
+
+- 95+ Lighthouse achievable for most pages
+- Real-world LCP <1s typical
+- Some optimizations have visual/UX tradeoffs — skill confirms each with user
+- PSI Lantern simulator may show NO_LCP for pages with deferred players (known PSI bug, resolves once page accumulates CrUX field data ~2 weeks)
+- Lighthouse local with `--throttling-method=devtools` is the most reliable metric
 
 ## License
 
