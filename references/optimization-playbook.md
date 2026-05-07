@@ -31,6 +31,15 @@ Replace with:
   function load(){
     if(loaded)return;
     loaded=true;
+    // CRITICAL: swap poster <img> back to <vturb-smartplayer> BEFORE loading
+    // player.js, otherwise script can't find the element to populate.
+    document.querySelectorAll("img[data-vturb-id]").forEach(function(img){
+      var vid=img.getAttribute("data-vturb-id");
+      var el=document.createElement("vturb-smartplayer");
+      el.id="vid-"+vid;
+      el.style.cssText="display:block;margin:0 auto;width:100%";
+      img.parentNode.replaceChild(el,img);
+    });
     var s=document.createElement("script");
     s.src="https://scripts.converteai.net/.../player.js";
     s.async=true;

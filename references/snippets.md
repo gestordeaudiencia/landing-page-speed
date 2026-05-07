@@ -18,6 +18,15 @@ Copy-paste building blocks. Adapt placeholders.
   function load(){
     if(loaded)return;
     loaded=true;
+    // Swap each poster <img data-vturb-id="X"> back to real <vturb-smartplayer>
+    document.querySelectorAll("img[data-vturb-id]").forEach(function(img){
+      var vid=img.getAttribute("data-vturb-id");
+      var el=document.createElement("vturb-smartplayer");
+      el.id="vid-"+vid;
+      el.style.cssText="display:block;margin:0 auto;width:100%";
+      img.parentNode.replaceChild(el,img);
+    });
+    // THEN load player.js so it finds the elements
     var s=document.createElement("script");
     s.src="https://scripts.converteai.net/ACCOUNT_ID/players/PLAYER_ID/v4/player.js";
     s.async=true;

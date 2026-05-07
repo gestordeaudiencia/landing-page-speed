@@ -45,7 +45,9 @@ def patch_body(body: str, cfg: dict) -> str:
             body,
         )
 
-    # 2. Defer vturb player to first interaction
+    # 2. Defer vturb player to first interaction.
+    # On load: swap each poster <img data-vturb-id="X"> back to a real
+    # <vturb-smartplayer id="vid-X">, THEN inject player.js so it finds them.
     if cfg.get("vturb_player_url"):
         url = cfg["vturb_player_url"]
         deferred = (
@@ -55,6 +57,14 @@ def patch_body(body: str, cfg: dict) -> str:
             'function load(){'
             'if(loaded)return;'
             'loaded=true;'
+            'var posters=document.querySelectorAll("img[data-vturb-id]");'
+            'posters.forEach(function(img){'
+            'var vid=img.getAttribute("data-vturb-id");'
+            'var el=document.createElement("vturb-smartplayer");'
+            'el.id="vid-"+vid;'
+            'el.style.cssText="display:block;margin:0 auto;width:100%";'
+            'img.parentNode.replaceChild(el,img);'
+            '});'
             'var s=document.createElement("script");'
             's.src="' + url + '";'
             's.async=true;'
@@ -74,10 +84,11 @@ def patch_body(body: str, cfg: dict) -> str:
             body,
         )
 
-    # 3. Replace <vturb-smartplayer> with poster <img> for LCP detection
+    # 3. Replace <vturb-smartplayer id="vid-X"> with poster <img data-vturb-id="X">.
+    # The deferred loader (above) swaps them back before loading player.js.
     if cfg.get("vturb_player_id"):
         body = re.sub(
-            r'<vturb-smartplayer\s+id="([^"]+)"[^>]*></vturb-smartplayer>',
+            r'<vturb-smartplayer\s+id="vid-([^"]+)"[^>]*></vturb-smartplayer>',
             r'<img src="/vsl-poster.svg" width="720" height="405" alt="Assistir VSL" loading="eager" decoding="async" fetchpriority="high" style="display:block;width:100%;height:auto;cursor:pointer" data-vturb-id="\1" />',
             body,
         )
