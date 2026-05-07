@@ -99,25 +99,22 @@ html,body{background:#F5F0E8;margin:0;padding:0;overflow-x:hidden}
 </style>
 ```
 
-## 4. Add poster `<img>` for LCP detection
+## 4. Add poster `<img>` (inline data URI) for LCP detection
 
-**Impact:** Fixes Lighthouse Lantern NO_LCP errors.
+**Impact:** Fixes Lighthouse Lantern NO_LCP errors. Zero extra HTTP request.
 
-Create `/public/vsl-poster.svg`:
-```xml
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 405" width="720" height="405">
-  <rect width="720" height="405" fill="#0a0a0a"/>
-  <circle cx="360" cy="202" r="60" fill="#e07a3a"/>
-  <path d="M345 175 L345 230 L390 202 Z" fill="#fff"/>
-</svg>
-```
-
-Reference in player container with explicit `width`/`height` and `fetchpriority="high"`.
-
-Preload in `<head>`:
+Inline as data URI directly in the `<img src>`:
 ```html
-<link rel="preload" as="image" href="/vsl-poster.svg" fetchpriority="high">
+<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 405'%3E%3Crect width='720' height='405' fill='%231a1a1a'/%3E%3Ccircle cx='360' cy='202' r='60' fill='%23e07a3a'/%3E%3Cpath d='M345 175L345 230L390 202Z' fill='%23fff'/%3E%3C/svg%3E"
+     width="720" height="405" alt="Assistir VSL"
+     loading="eager" decoding="async" fetchpriority="high"
+     style="display:block;width:100%;height:auto;cursor:pointer"
+     data-vturb-id="XXX" />
 ```
+
+Why data URI not file: saves 1 HTTP request (~50ms on slow networks). Inline poster is ~250 bytes which Brotli compresses to ~100. Negligible HTML overhead.
+
+Alternative if you need a custom-designed poster: hosted SVG file at `/public/vsl-poster.svg`, with preload `<link rel="preload" as="image" href="/vsl-poster.svg" fetchpriority="high">`.
 
 ## 5. Preconnect critical 3rd party origins
 
@@ -159,7 +156,27 @@ Create `public/_headers`:
   Cache-Control: public, max-age=300, must-revalidate
 ```
 
-## 8. Disable non-composited animations
+## 8. content-visibility:auto on below-fold sections
+
+**Impact:** -30 to -80ms TBT, -50 to -150ms LCP variance. Browser skips paint/layout for sections outside viewport until scroll near them.
+
+Add to inline `<style>` in `<head>`:
+```css
+body > section:nth-of-type(n+4){
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1000px;
+}
+```
+
+Tune `nth-of-type(n+N)` to keep first N-1 sections fully painted (above-fold + 1-2 below for momentum). `contain-intrinsic-size: auto 1000px` reserves estimated section height — adjust based on real page measurement to avoid scrollbar jumps.
+
+**Risks:**
+- Edge case: very fast scroll on slow CPU may briefly show empty section frame. ~1 frame.
+- Wrong `intrinsic-size` causes scroll position shifts when sections un-contain.
+- Anchor links (`#checkout`) work normally — browser auto-reveals contained sections.
+- Browser Cmd+F search through hidden text: works in modern Chrome (since 2022).
+
+## 9. Disable non-composited animations
 
 If PageSpeed flags 13+ animations, override:
 ```css

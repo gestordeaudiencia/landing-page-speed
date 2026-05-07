@@ -36,6 +36,18 @@ import json
 import sys
 
 
+# Inline data-URI poster for vturb deferral (zero extra request, ~250 bytes).
+# Renders as: dark box + orange play button.
+POSTER_DATA_URI = (
+    "data:image/svg+xml,"
+    "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 405'%3E"
+    "%3Crect width='720' height='405' fill='%231a1a1a'/%3E"
+    "%3Ccircle cx='360' cy='202' r='60' fill='%23e07a3a'/%3E"
+    "%3Cpath d='M345 175L345 230L390 202Z' fill='%23fff'/%3E"
+    "%3C/svg%3E"
+)
+
+
 def patch_body(body: str, cfg: dict) -> str:
     # 1. Drop render-blocking Google Fonts CSS link if requested
     if cfg.get("drop_google_fonts", True):
@@ -84,12 +96,18 @@ def patch_body(body: str, cfg: dict) -> str:
             body,
         )
 
-    # 3. Replace <vturb-smartplayer id="vid-X"> with poster <img data-vturb-id="X">.
-    # The deferred loader (above) swaps them back before loading player.js.
+    # 3. Replace <vturb-smartplayer id="vid-X"> with inline data-URI poster <img>.
+    # Zero extra HTTP request. The deferred loader swaps back before player.js.
     if cfg.get("vturb_player_id"):
+        poster_repl = (
+            '<img src="' + POSTER_DATA_URI + '" width="720" height="405" '
+            'alt="Assistir VSL" loading="eager" decoding="async" fetchpriority="high" '
+            'style="display:block;width:100%;height:auto;cursor:pointer" '
+            'data-vturb-id="\\1" />'
+        )
         body = re.sub(
             r'<vturb-smartplayer\s+id="vid-([^"]+)"[^>]*></vturb-smartplayer>',
-            r'<img src="/vsl-poster.svg" width="720" height="405" alt="Assistir VSL" loading="eager" decoding="async" fetchpriority="high" style="display:block;width:100%;height:auto;cursor:pointer" data-vturb-id="\1" />',
+            poster_repl,
             body,
         )
 
@@ -148,9 +166,8 @@ def build_head(cfg: dict) -> str:
         head_lines.append(f'<link rel="dns-prefetch" href="{origin}" />')
 
     head_lines.append('')
-    head_lines.append('<link rel="preload" as="image" href="/vsl-poster.svg" fetchpriority="high" />')
     if preload_hero:
-        head_lines.append(f'<link rel="preload" as="image" href="{preload_hero}" />')
+        head_lines.append(f'<link rel="preload" as="image" href="{preload_hero}" fetchpriority="high" />')
 
     head_lines.append('')
     head_lines.append('<style>')
@@ -161,6 +178,14 @@ def build_head(cfg: dict) -> str:
         head_lines.append('.floating-logo{animation:none!important}')
         head_lines.append('.hero-mockup{animation:none!important}')
         head_lines.append('.btn{animation:none!important}')
+
+    if cfg.get("content_visibility_below_fold", True):
+        # Skip layout/paint for sections below initial viewport.
+        # Sections 1-3 stay fully rendered; 4+ get content-visibility.
+        # Tune the nth-of-type(n+N) start index based on page structure.
+        head_lines.append(
+            'body > section:nth-of-type(n+4){content-visibility:auto;contain-intrinsic-size:auto 1000px}'
+        )
 
     head_lines.append('</style>')
     head_lines.append('</head>')
