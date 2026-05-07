@@ -74,7 +74,7 @@ def patch_body(body: str, cfg: dict) -> str:
             'evs.forEach(function(ev){'
             'window.addEventListener(ev,load,{once:true,passive:true});'
             '});'
-            'setTimeout(load,7000);'
+            'setTimeout(load,15000);'
             '})();'
             '</script>'
         )

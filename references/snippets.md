@@ -35,7 +35,7 @@ Copy-paste building blocks. Adapt placeholders.
   ["scroll","touchstart","mousemove","click","keydown"].forEach(function(ev){
     window.addEventListener(ev,load,{once:true,passive:true});
   });
-  setTimeout(load,7000);
+  setTimeout(load,15000);
 })();
 </script>
 ```
@@ -64,7 +64,7 @@ Copy-paste building blocks. Adapt placeholders.
   ["scroll","touchstart","mousemove","click","keydown"].forEach(function(ev){
     window.addEventListener(ev,load,{once:true,passive:true});
   });
-  setTimeout(load,7000);
+  setTimeout(load,15000);
 })();
 </script>
 ```
