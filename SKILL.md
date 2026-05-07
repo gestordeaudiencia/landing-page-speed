@@ -13,25 +13,32 @@ This is an **interactive workflow**. Walk the user through it, ask questions, do
 
 ### Step 0 — Greet + ask source
 
-Tell the user (in their language — match what they wrote):
+Tell the user (match their language):
 
-> "Vou otimizar tua landing page. Pra começar, me diz como tu tens a página hoje:
+> "Vou otimizar tua landing page. Me diz como tu tens ela hoje:
 >
-> 1. **URL ao vivo** — me passa o link, eu baixo o HTML
+> 1. **URL ao vivo** — manda o link, eu baixo o HTML automaticamente
 > 2. **Arquivo HTML** local — me dá o caminho
-> 3. **Plataforma** específica (GHL, WordPress/Elementor, ClickFunnels, etc) — me diz qual e como exportar"
+> 3. **Só me explica a plataforma** (GHL, Elementor/WP, ClickFunnels, etc) — eu te oriento como exportar"
 
 Wait for their answer. Don't proceed without it.
 
+**Bonus questions to ask if they pick URL:**
+- "É uma página estática ou SPA (React/Vue/Angular)?" — afeta método de scrape
+- "Tem login antes de acessar?" — se sim, precisas do HTML manual
+
 ### Step 1 — Get the HTML
 
-Based on their answer:
+**If URL:** run `scripts/scrape-url.sh <url>`. The script auto-detects SPA pages and uses headless Chrome if needed (when available). Outputs `/tmp/scraped-<ts>/index.html`.
 
-**If URL:** use `scripts/scrape-url.sh <url>` to download HTML + critical assets.
+**If basic scrape returns empty body:** script flags it as SPA. Suggest user:
+- Install Chrome and re-run (script tries headless automatically if Chrome detected)
+- OR manually: open page in Chrome → Cmd+Opt+U → "Save Page As" → send file path
+- OR paste full HTML directly into chat
 
-**If file path:** read the file.
+**If file path:** read it directly.
 
-**If platform name:** read `references/platforms/<platform>.md` for export instructions, then ask user to do the export and paste the file path.
+**If platform name only:** read `references/platforms/<platform>.md` for export instructions, ask user to follow them, then receive file path.
 
 ### Step 2 — Auto-detect stack
 
